@@ -1,1 +1,11 @@
-Images from webcam need to be square to post to instagram. Make sure to crop after capturing
+Remaining
+- Resize image being displayed
+- Make sure cropped image is writeable to disk
+- Save image
+- Post to Instagram
+- Take picture with spacebar or button click
+- Countdown to picture
+- Preview/retake option
+
+Complete
+- Crop images to square. Instagram requires this.
