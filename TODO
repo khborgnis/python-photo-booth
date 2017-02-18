@@ -1,11 +1,13 @@
 Remaining
 - Resize image being displayed
 - Make sure cropped image is writeable to disk
-- Save image
 - Post to Instagram
 - Take picture with spacebar or button click
 - Countdown to picture
 - Preview/retake option
+- Increase FPS on live video feed
 
 Complete
 - Crop images to square. Instagram requires this.
+- Save image
+- Countdown needs to display as overlay

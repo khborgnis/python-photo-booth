@@ -5,11 +5,16 @@ from PIL import Image
 from PIL import ImageTk
 import cv2
 import Queue
+import datetime
+import os
+import time
 
 class PhotoBoothApp:
     def __init__(self, video_stream, output_path):
         self.video_stream = video_stream
         self.output_path = output_path
+
+        self.countdown = 0
 
         # Properties for multi-threading
         self.run_event = True
@@ -22,7 +27,7 @@ class PhotoBoothApp:
 
         # Create the button to add under the video panel
         btnTakeImage = tk.Button(self.window, text="Take a Photo!",
-            command=self.take_a_picture)
+            command=self.picture_taking_thread)
 	btnTakeImage.pack(side="bottom", fill="both", expand="yes", padx="15",
             pady="15")
 
@@ -57,8 +62,13 @@ class PhotoBoothApp:
         x2 = x1+height
         image = image[0:height, x1:x2]
 
+        if self.countdown > 0:
+            font = font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(image,"Taking picture in {}...".format(self.countdown),(10,50), font, 1,(255,255,255),2)
+
         image = Image.fromarray(image)
         image = ImageTk.PhotoImage(image)
+
 
         print "image size: %dx%d" % (image.width(), image.height())
 
@@ -72,7 +82,28 @@ class PhotoBoothApp:
             self.video_panel.image = image
 
     def take_a_picture(self):
-        print "Take a picture!"
+        print "[INFO] Taking a picture..."
+        timestamp = datetime.datetime.now()
+        filename = "{}.png".format(timestamp.strftime("%Y-%m-%d_%H-%M-%S"))
+        path = os.path.sep.join((self.output_path, filename))
+
+        cv2.imwrite(path, self.frame.copy())
+        print "[INFO] saved {}".format(filename)
+
+    def picture_taking_thread(self):
+        if self.countdown > 0:
+            return
+
+        thread = threading.Thread(target=self.delayed_picture_taking, args=())
+        thread.start()
+
+    def delayed_picture_taking(self):
+        self.countdown = 3
+        while self.countdown > 0:
+            time.sleep(1)
+            self.countdown -= 1
+
+        self.take_a_picture()
 
 from cv2 import cv
 class WebcamStream:
