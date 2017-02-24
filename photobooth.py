@@ -8,6 +8,7 @@ import Queue
 import datetime
 import os
 import time
+from twitter_poster import TwitterPoster
 
 class PhotoBoothApp:
     def __init__(self, video_stream, output_path):
@@ -15,21 +16,17 @@ class PhotoBoothApp:
         self.output_path = output_path
 
         self.countdown = 0
+        self.to_be_written = None
 
         # Properties for multi-threading
         self.run_event = True
 
-        self.frame_video = None
-
         # Create the background window, and an empty panel for the live video
         self.window = tk.Tk()
-        self.video_panel = None
 
-        # Create the button to add under the video panel
-        btnTakeImage = tk.Button(self.window, text="Take a Photo!",
-            command=self.picture_taking_thread)
-	btnTakeImage.pack(side="bottom", fill="both", expand="yes", padx="15",
-            pady="15")
+        self.window.bind("<KeyRelease>", self.keyup)
+
+        self.video_panel = None
 
         self.stopEvent = threading.Event()
         self.thread = threading.Thread(target=self.process_images, args=())
@@ -40,8 +37,19 @@ class PhotoBoothApp:
         self.window.wm_protocol("WM_DELETE_WINDOW", self.on_close)
 
 
+    def keyup(self, e):
+        if e.char == ' ':
+            self.picture_taking_thread()
+        elif e.char == 'g' and self.to_be_written != None:
+            self.post_image()
+        elif e.char == 'q':
+            self.on_close()
+
     def process_images(self):
         while self.run_event:
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                self.on_close()
+                return
             self.show_image()
         self.stopEvent.set()
         self.video_stream.stop()
@@ -54,21 +62,27 @@ class PhotoBoothApp:
 
     def show_image(self):
         self.frame = self.video_stream.read()
-        image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
 
-        # Crop the image to be square for Instagram
-        height, width = image.shape[:2]
-        x1 = (width-height)//2
-        x2 = x1+height
-        image = image[0:height, x1:x2]
+        if self.to_be_written == None:
+            local_frame = self.frame
+        else:
+            local_frame = self.to_be_written
 
+        image = cv2.cvtColor(local_frame, cv2.COLOR_BGR2RGB)
+
+        font = font = cv2.FONT_HERSHEY_SIMPLEX
         if self.countdown > 0:
-            font = font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(image,"Taking picture in {}...".format(self.countdown),(10,50), font, 1,(255,255,255),2)
+            cv2.putText(image,"Taking picture in {}...".format(self.countdown),(10,700), font, 1,(255,255,255),2)
+
+        elif self.to_be_written != None:
+            cv2.putText(image,"Press 'G' to post, or the Space Bar to retake...",(10,700), font, 1,(255,255,255),2)
+
+        else:
+            cv2.putText(image,"Press the Space Bar to take a picture...",(10,700), font, 1,(255,255,255),2)
+            
 
         image = Image.fromarray(image)
         image = ImageTk.PhotoImage(image)
-
 
         print "image size: %dx%d" % (image.width(), image.height())
 
@@ -76,69 +90,44 @@ class PhotoBoothApp:
         if self.video_panel is None:
             self.video_panel = tk.Label(image=image)
             self.video_panel.image = image
-            self.video_panel.pack(side="left", padx="10", pady="10")
+            self.video_panel.pack()
         else:
             self.video_panel.configure(image=image)
             self.video_panel.image = image
 
     def take_a_picture(self):
         print "[INFO] Taking a picture..."
+        self.to_be_written = self.frame
+
+    def post_image(self):
         timestamp = datetime.datetime.now()
         filename = "{}.png".format(timestamp.strftime("%Y-%m-%d_%H-%M-%S"))
         path = os.path.sep.join((self.output_path, filename))
 
-        cv2.imwrite(path, self.frame.copy())
+        cv2.imwrite(path, self.to_be_written.copy())
         print "[INFO] saved {}".format(filename)
+        self.to_be_written = None
+
+        twitter = TwitterPoster("config.xml", path, "#AliceInWonderlandParty #AVeryMerryUnbirthday")
+        twitter.start()
 
     def picture_taking_thread(self):
-        if self.countdown > 0:
-            return
+        self.to_be_written = None
 
         thread = threading.Thread(target=self.delayed_picture_taking, args=())
         thread.start()
 
     def delayed_picture_taking(self):
-        self.countdown = 3
+        self.countdown = 5
         while self.countdown > 0:
             time.sleep(1)
             self.countdown -= 1
 
         self.take_a_picture()
 
-from cv2 import cv
-class WebcamStream:
-    def __init__(self, src=0):
-        # OpenCV to capture an image from device 0
-        self.video = cv2.VideoCapture(src)
+import webcam_stream
 
-        self.video.set(5,30)
-        self.video.set(3,1920)
-        self.video.set(4,1080)
-
-        w = self.video.get(3)
-        h = self.video.get(4)
-        print "[INFO] Starting video stream with resolution " + str(w) + "x" + str(h)
-        (self.grabbed, self.frame) = self.video.read()
-
-        self.running = True
-
-    def start(self):
-        threading.Thread(target=self.update, args=()).start()
-        return self
-
-    def update(self):
-        while self.running:
-          (self.grabbed, self.frame) = self.video.read()
-
-    def read(self):
-        return self.frame
-
-    def stop(self):
-        self.running = False
-        self.video.release()
-        
-
-video_camera = WebcamStream(0)
+video_camera = webcam_stream.WebcamStream(0)
 video_camera.start()
 
 pb = PhotoBoothApp(video_camera, "output")

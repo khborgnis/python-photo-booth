@@ -1,0 +1,8 @@
+<photobooth>
+   <twitter>
+      <type consumer_key=""/>
+      <type consumer_secret=""/>
+      <type access_token_key=""/>
+      <type access_token_secret=""/>
+   </twitter>
+</photobooth>
