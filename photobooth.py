@@ -1,14 +1,30 @@
 # import the necessary packages
 import threading
-import Tkinter as tk
+import tkinter as tk
 from PIL import Image
 from PIL import ImageTk
 import cv2
-import Queue
 import datetime
 import os
 import time
 from twitter_poster import TwitterPoster
+
+
+class FullScreenApp(object):
+    def __init__(self, master, **kwargs):
+        self.master=master
+        pad=3
+        self._geom='200x200+0+0'
+        master.geometry("{0}x{1}+0+0".format(
+            master.winfo_screenwidth()-pad, master.winfo_screenheight()-pad))
+        master.bind('<Escape>', self.toggle_geom)
+
+    def toggle_geom(self,event):
+        geom=self.master.winfo_geometry()
+        print(geom,self._geom)
+        self.master.geometry(self._geom)
+        self._geom=geom
+
 
 class PhotoBoothApp:
     def __init__(self, video_stream, output_path):
@@ -40,9 +56,9 @@ class PhotoBoothApp:
     def keyup(self, e):
         if e.char == ' ':
             self.picture_taking_thread()
-        elif e.char == 'g' and self.to_be_written != None:
+        elif e.char.lower() == 'p' and self.to_be_written is not None:
             self.post_image()
-        elif e.char == 'q':
+        elif e.char.lower() == 'q':
             self.on_close()
 
     def process_images(self):
@@ -57,34 +73,37 @@ class PhotoBoothApp:
 
     def on_close(self):
         # Stop the camera and quit
-        print "[INFO] Exiting the Photo Booth..."
+        print("[INFO] Exiting the Photo Booth...")
         self.run_event = False
 
     def show_image(self):
         self.frame = self.video_stream.read()
 
-        if self.to_be_written == None:
+        if self.to_be_written is None:
             local_frame = self.frame
         else:
             local_frame = self.to_be_written
 
         image = cv2.cvtColor(local_frame, cv2.COLOR_BGR2RGB)
 
-        font = font = cv2.FONT_HERSHEY_SIMPLEX
+        font = cv2.FONT_HERSHEY_SIMPLEX
         if self.countdown > 0:
-            cv2.putText(image,"Taking picture in {}...".format(self.countdown),(10,700), font, 1,(255,255,255),2)
+            cv2.putText(image, "Taking picture in {}...".format(self.countdown), (10, 700), font, 1, (255, 255, 255), 2)
 
-        elif self.to_be_written != None:
-            cv2.putText(image,"Press 'G' to post, or the Space Bar to retake...",(10,700), font, 1,(255,255,255),2)
-
+        elif self.to_be_written is not None:
+            cv2.putText(image, "Press 'P' to post, or the Space Bar to retake...", (10, 700), font, 1, (255, 255, 255), 2)
         else:
-            cv2.putText(image,"Press the Space Bar to take a picture...",(10,700), font, 1,(255,255,255),2)
-            
+            cv2.putText(image, "Press the Space Bar to take a picture...", (10, 700), font, 1, (255, 255, 255),2)
 
-        image = Image.fromarray(image)
-        image = ImageTk.PhotoImage(image)
+        h = self.window.winfo_height()
+        imgScale = h/self.video_stream.h
+        newX,newY = image.shape[1]*imgScale, image.shape[0]*imgScale
+        resized = cv2.resize(image, (int(newX), int(newY)))
 
-        print "image size: %dx%d" % (image.width(), image.height())
+        resized = Image.fromarray(resized)
+        image = ImageTk.PhotoImage(resized)
+
+        # print("image size: %dx%d" % (image.width(), image.height()))
 
         # if the panel is not None, we need to initialize it
         if self.video_panel is None:
@@ -96,20 +115,21 @@ class PhotoBoothApp:
             self.video_panel.image = image
 
     def take_a_picture(self):
-        print "[INFO] Taking a picture..."
+        print("[INFO] Taking a picture...")
         self.to_be_written = self.frame
 
     def post_image(self):
         timestamp = datetime.datetime.now()
         filename = "{}.png".format(timestamp.strftime("%Y-%m-%d_%H-%M-%S"))
-        path = os.path.sep.join((self.output_path, filename))
+        path = os.path.join(self.output_path, filename)
+        print(f"Writing to file: {path}")
 
         cv2.imwrite(path, self.to_be_written.copy())
-        print "[INFO] saved {}".format(filename)
+        print("[INFO] saved {}".format(filename))
         self.to_be_written = None
 
-        twitter = TwitterPoster("config.xml", path, "#AliceInWonderlandParty #AVeryMerryUnbirthday")
-        twitter.start()
+        # twitter = TwitterPoster("config.xml", path, "#AliceInWonderlandParty #AVeryMerryUnbirthday")
+        # twitter.start()
 
     def picture_taking_thread(self):
         self.to_be_written = None
@@ -131,6 +151,7 @@ video_camera = webcam_stream.WebcamStream(0)
 video_camera.start()
 
 pb = PhotoBoothApp(video_camera, "output")
+app = FullScreenApp(pb.window)
 pb.window.mainloop()
 
 cv2.destroyAllWindows()

@@ -6,17 +6,17 @@ class WebcamStream:
         # OpenCV to capture an image from device 0
         self.webcam = cv2.VideoCapture(src)
 
-        self.webcam.set(cv2.cv.CV_CAP_PROP_FOURCC, cv2.cv.CV_FOURCC('M', 'J', 'P', 'G') );
-        self.webcam.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH ,1280);
-        self.webcam.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT ,720);
-#        self.webcam.set(5,30)
+        self.webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+        self.webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-        w = self.webcam.get(3)
-        h = self.webcam.get(4)
-#        fps = self.webcam.get(8)
-#        fourcc = self.webcam.get(cv2.cv.CV_CAP_PROP_FOURCC)
+        self.w = self.webcam.get(3)
+        self.h = self.webcam.get(4)
+        # fps = self.webcam.get(8)
+        # fourcc = self.webcam.get(cv2.CAP_PROP_FOURCC)
 
-        print "[INFO] Starting video stream with resolution " + str(w) + "x" + str(h)
+        print("[INFO] Starting video stream with resolution " + str(self.w) + "x" + str(self.h))
+
         (self.grabbed, self.frame) = self.webcam.read()
 
         self.running = True

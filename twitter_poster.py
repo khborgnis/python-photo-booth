@@ -1,7 +1,7 @@
 # import the necessary packages
 import os
 import threading
-from TwitterAPI import TwitterAPI
+import twitter
 import xml.etree.ElementTree
 
 class TwitterPoster(threading.Thread):
@@ -24,7 +24,7 @@ class TwitterPoster(threading.Thread):
                     elif 'access_token_secret' in type.attrib:
                         self.access_token_secret = type.attrib['access_token_secret'] 
 
-        self.api = TwitterAPI(self.consumer_key,
+        self.api = twitter.Api(self.consumer_key,
                               self.consumer_secret,
                               self.access_token_key,
                               self.access_token_secret,
