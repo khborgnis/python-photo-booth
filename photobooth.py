@@ -12,18 +12,18 @@ from twitter_poster import TwitterPoster
 
 class FullScreenApp(object):
     def __init__(self, master, **kwargs):
-        self.master=master
-        pad=3
-        self._geom='200x200+0+0'
+        self.master = master
+        pad = 3
+        self._geom = '200x200+0+0'
         master.geometry("{0}x{1}+0+0".format(
-            master.winfo_screenwidth()-pad, master.winfo_screenheight()-pad))
+            master.winfo_screenwidth() - pad, master.winfo_screenheight() - pad))
         master.bind('<Escape>', self.toggle_geom)
 
-    def toggle_geom(self,event):
-        geom=self.master.winfo_geometry()
-        print(geom,self._geom)
+    def toggle_geom(self, event):
+        geom = self.master.winfo_geometry()
+        print(geom, self._geom)
         self.master.geometry(self._geom)
-        self._geom=geom
+        self._geom = geom
 
 
 class PhotoBoothApp:
@@ -51,7 +51,6 @@ class PhotoBoothApp:
         # Set title and close window callback
         self.window.wm_title("Photo Booth App")
         self.window.wm_protocol("WM_DELETE_WINDOW", self.on_close)
-
 
     def keyup(self, e):
         if e.char == ' ':
@@ -88,16 +87,19 @@ class PhotoBoothApp:
 
         font = cv2.FONT_HERSHEY_SIMPLEX
         if self.countdown > 0:
-            cv2.putText(image, "Taking picture in {}...".format(self.countdown), (10, 700), font, 1, (255, 255, 255), 2)
+            cv2.putText(image, "Taking picture in {}...".format(self.countdown), (10, 700), font, 1,
+                        (255, 255, 255), 2)
 
         elif self.to_be_written is not None:
-            cv2.putText(image, "Press 'P' to post, or the Space Bar to retake...", (10, 700), font, 1, (255, 255, 255), 2)
+            cv2.putText(image, "Press 'P' to post, or the Space Bar to retake...", (10, 700), font,
+                        1, (255, 255, 255), 2)
         else:
-            cv2.putText(image, "Press the Space Bar to take a picture...", (10, 700), font, 1, (255, 255, 255),2)
+            cv2.putText(image, "Press the Space Bar to take a picture...", (10, 700), font, 1,
+                        (255, 255, 255), 2)
 
         h = self.window.winfo_height()
-        imgScale = h/self.video_stream.h
-        newX,newY = image.shape[1]*imgScale, image.shape[0]*imgScale
+        imgScale = h / self.video_stream.h
+        newX, newY = image.shape[1] * imgScale, image.shape[0] * imgScale
         resized = cv2.resize(image, (int(newX), int(newY)))
 
         resized = Image.fromarray(resized)
@@ -144,6 +146,7 @@ class PhotoBoothApp:
             self.countdown -= 1
 
         self.take_a_picture()
+
 
 import webcam_stream
 
